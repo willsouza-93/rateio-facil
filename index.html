@@ -15,7 +15,8 @@
     .install-icon-btn{background:#fff;color:#171717;border:1px solid var(--border);border-radius:10px;padding:6px 9px;font-size:16px;line-height:1;min-width:auto}
     .install-hint-banner{display:none;background:var(--soft);border:1px solid var(--border);padding:12px;border-radius:14px;margin:0 0 16px}
     .install-hint-banner .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .install-hint-banner .checkbox{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--muted);font-size:14px}
+    .install-hint-banner .checkbox{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin-top:10px;color:var(--muted);font-size:14px;font-weight:600}
+    .install-hint-banner .checkbox input{width:16px;height:16px;margin:0;flex:0 0 auto}
     .badge{display:inline-block;background:var(--soft);color:var(--muted);padding:7px 12px;border-radius:999px;font-size:14px}.grid{display:grid;grid-template-columns:1fr 420px;gap:24px;align-items:start}
     button{border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700;background:#171717;color:#fff} button.secondary{background:#fff;color:#171717;border:1px solid var(--border)} button.danger{background:transparent;color:var(--danger);border:1px solid #f1caca;padding:8px 10px} button.success{background:var(--success)} button:disabled{opacity:.45;cursor:not-allowed}
     label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px} input,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px} input:disabled,select:disabled{background:var(--soft);color:#999;cursor:not-allowed}
@@ -100,7 +101,22 @@
       {selector:'#installButton',title:'📲 Instale o aplicativo',description:'Você pode instalar o Rateio Fácil para acessar mais rapidamente, usar em tela cheia e continuar utilizando offline.'}
     ];
     function getVisibleTutorialSteps(){return tutorialSteps.filter(step=>!(step.selector==='#installButton'&&isInstalledMode()))}
-    function positionTutorial(){ if(!tutorialRunning)return; const steps=getVisibleTutorialSteps(); const step=steps[tutorialStepIndex], target=step?document.querySelector(step.selector):null; if(!target||!step)return; const r=target.getBoundingClientRect(); const pad=8; const cardHeight=220; els.tutorialHighlight.style.display='block'; els.tutorialHighlight.style.top=(r.top-pad)+'px'; els.tutorialHighlight.style.left=(r.left-pad)+'px'; els.tutorialHighlight.style.width=(r.width+pad*2)+'px'; els.tutorialHighlight.style.height=(r.height+pad*2)+'px'; els.tutorialTitle.textContent=step.title; els.tutorialDescription.textContent=step.description; els.tutorialBackButton.disabled=tutorialStepIndex===0; els.tutorialNextButton.disabled=tutorialStepIndex===steps.length-1; const showInstallStep=step.selector==='#installButton'; els.tutorialFinishButton.textContent=showInstallStep?'Pular':'Finalizar'; els.tutorialNextButton.textContent=showInstallStep?(isIos()?'Ver instruções':'Instalar agora'):'Próximo'; const top=Math.max(12, Math.min(window.innerHeight-cardHeight-12, r.bottom+14)); const left=Math.max(12, Math.min(window.innerWidth-360, r.left)); els.tutorialCard.style.top=top+'px'; els.tutorialCard.style.left=left+'px';}
+    function positionTutorial(){ if(!tutorialRunning)return; const steps=getVisibleTutorialSteps(); const step=steps[tutorialStepIndex], target=step?document.querySelector(step.selector):null; if(!target||!step)return;
+      const preRect=target.getBoundingClientRect();
+      if(preRect.top<70 || preRect.bottom>window.innerHeight-70){target.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})}
+      const r=target.getBoundingClientRect(); const pad=8; const cardHeight=220; const cardWidth=340;
+      els.tutorialHighlight.style.display='block'; els.tutorialHighlight.style.top=(r.top-pad)+'px'; els.tutorialHighlight.style.left=(r.left-pad)+'px'; els.tutorialHighlight.style.width=(r.width+pad*2)+'px'; els.tutorialHighlight.style.height=(r.height+pad*2)+'px'; els.tutorialTitle.textContent=step.title; els.tutorialDescription.textContent=step.description; els.tutorialBackButton.disabled=tutorialStepIndex===0;
+      const showInstallStep=step.selector==='#installButton';
+      els.tutorialNextButton.disabled=!showInstallStep&&tutorialStepIndex===steps.length-1;
+      els.tutorialFinishButton.textContent=showInstallStep?'Pular':'Finalizar'; els.tutorialNextButton.textContent=showInstallStep?(isIos()?'Ver instruções':'Instalar agora'):'Próximo';
+      const roomBelow=window.innerHeight-r.bottom-18, roomAbove=r.top-18;
+      let top=roomBelow>=cardHeight ? r.bottom+14 : (roomAbove>=cardHeight ? r.top-cardHeight-14 : Math.max(12, Math.min(window.innerHeight-cardHeight-12, r.bottom+14)));
+      let left=Math.max(12, Math.min(window.innerWidth-cardWidth-12, r.left));
+      const overlapX = left < r.right && left + cardWidth > r.left;
+      const overlapY = top < r.bottom && top + cardHeight > r.top;
+      if(overlapX && overlapY){top = roomAbove>=roomBelow ? Math.max(12, r.top-cardHeight-14) : Math.min(window.innerHeight-cardHeight-12, r.bottom+14)}
+      els.tutorialCard.style.top=top+'px'; els.tutorialCard.style.left=left+'px';
+    }
     function openTutorial(step=0){tutorialRunning=true;tutorialStepIndex=step;els.tutorialOverlay.style.display='block';els.tutorialCard.style.display='block';positionTutorial()}
     function closeTutorial(markDone){tutorialRunning=false;els.tutorialOverlay.style.display='none';els.tutorialHighlight.style.display='none';els.tutorialCard.style.display='none';if(markDone)localStorage.setItem(TUTORIAL_STORAGE_KEY,'1')}
     function registerServiceWorkerUpdates(reg){if(!reg)return; if(reg.waiting){waitingWorker=reg.waiting;els.updateBanner.style.display='flex';} reg.addEventListener('updatefound',()=>{const nw=reg.installing; if(!nw)return; nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller){waitingWorker=nw;els.updateBanner.style.display='flex';}})}); navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshingForUpdate)return; refreshingForUpdate=true; window.location.reload();});}
